@@ -31,6 +31,8 @@ rabbitmq-proxy/
     └── rabbitmq-proxy-forwarder.service
 ```
 
+Use the `.tar.gz` archive when running `scripts/install.sh`. The standalone binary asset is provided for manual/custom installations and does not contain the configuration template, systemd units, logrotate policy, or scripts.
+
 ## Prerequisites
 
 The server needs:
@@ -116,6 +118,8 @@ Run the packaged installer:
 ```bash
 sudo ./scripts/install.sh
 ```
+
+Do not copy `scripts/install.sh` away from the extracted directory. It resolves `config.example.yml`, `systemd/`, and `logrotate/` relative to its own location and now exits before making changes when required package files are missing.
 
 The installer creates the service user and installs:
 

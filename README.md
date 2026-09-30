@@ -108,6 +108,8 @@ SHA256SUMS
 
 Each archive contains the executable, a starting `config.yml`, `config.example.yml`, README, the production deployment guide, systemd units, a logrotate policy, and installation scripts.
 
+Use the `.tar.gz` archive for production installation. The standalone binary asset contains only the executable and does not include `config.example.yml`, systemd units, logrotate policy, or installation scripts.
+
 ## CLI
 
 ```bash

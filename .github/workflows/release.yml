@@ -1,0 +1,128 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    name: Verify release source
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Verify semantic tag and Cargo version
+        shell: bash
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tags must use vMAJOR.MINOR.PATCH" >&2
+            exit 1
+          fi
+
+          tag_version="${GITHUB_REF_NAME#v}"
+          cargo_version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')"
+          if [[ "$tag_version" != "$cargo_version" ]]; then
+            echo "Tag version $tag_version does not match Cargo.toml version $cargo_version" >&2
+            exit 1
+          fi
+
+      - name: Run release quality gates
+        run: |
+          cargo fmt --check
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+          cargo test --locked
+
+  build:
+    name: Build ${{ matrix.arch }} static binary
+    needs: verify
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            arch: x86_64
+          - target: i686-unknown-linux-musl
+            arch: i686
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install Rust target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Build static binary
+        run: cross build --locked --release --target "${{ matrix.target }}"
+
+      - name: Verify and package binary
+        shell: bash
+        run: |
+          binary="target/${{ matrix.target }}/release/rabbitmq-proxy"
+          asset="rabbitmq-proxy-${GITHUB_REF_NAME}-linux-${{ matrix.arch }}-musl"
+
+          file "$binary"
+          ldd "$binary" 2>&1 | tee /tmp/rabbitmq-proxy-ldd.txt || true
+          grep -Eq "statically linked|not a dynamic executable" /tmp/rabbitmq-proxy-ldd.txt
+          "$binary" check-config --config config.example.yml
+
+          mkdir -p "package/rabbitmq-proxy/docs" "package/rabbitmq-proxy/systemd" "package/rabbitmq-proxy/scripts" dist
+          install -m 0755 "$binary" "dist/$asset"
+          install -m 0755 "$binary" "package/rabbitmq-proxy/rabbitmq-proxy"
+          install -m 0644 config.example.yml "package/rabbitmq-proxy/config.yml"
+          install -m 0644 config.example.yml "package/rabbitmq-proxy/config.example.yml"
+          install -m 0644 README.md "package/rabbitmq-proxy/README.md"
+          install -m 0644 docs/DEPLOYMENT.md "package/rabbitmq-proxy/docs/DEPLOYMENT.md"
+          install -m 0644 systemd/*.service "package/rabbitmq-proxy/systemd/"
+          install -m 0755 scripts/*.sh "package/rabbitmq-proxy/scripts/"
+
+          tar -C package -czf "dist/$asset.tar.gz" rabbitmq-proxy
+
+      - name: Upload packaged binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Download all architecture artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum rabbitmq-proxy-* > SHA256SUMS
+
+      - name: Publish GitHub Release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: dist/*

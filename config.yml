@@ -1,0 +1,65 @@
+app:
+  environment: development
+  shutdown_timeout_seconds: 30
+
+listener:
+  enabled: true
+  bind: "0.0.0.0"
+  port: 8085
+  path: "/"
+  allowed_ips:
+    - "127.0.0.1"
+    - "::1"
+  max_body_size: 1048576
+  request_timeout_seconds: 10
+
+forwarder:
+  enabled: true
+  target_url: "http://127.0.0.1:8081/pms/"
+  connect_timeout_seconds: 3
+  request_timeout_seconds: 5
+  concurrency: 1
+  retry:
+    max_attempts: 5
+    initial_delay_ms: 1000
+    max_delay_ms: 30000
+    backoff_multiplier: 2.0
+  poison_message:
+    strategy: "drop_and_log"
+    max_attempts: 5
+
+rabbitmq:
+  host: "127.0.0.1"
+  port: 5672
+  username: "guest"
+  password: "guest"
+  virtual_host: "/"
+  exchange: "nomadix_ex"
+  routing_key: "nomadix_ex"
+  queue: "nomadix_queue"
+  heartbeat_seconds: 30
+  connection_timeout_seconds: 5
+  declare_topology: true
+  reconnect:
+    initial_delay_ms: 1000
+    max_delay_ms: 30000
+  publisher:
+    confirm_timeout_seconds: 5
+  consumer:
+    prefetch_count: 10
+
+logging:
+  level: "info"
+  directory: "./logs"
+  listener_file: "listener.log"
+  forwarder_file: "forwarder.log"
+  log_payload: false
+  max_payload_log_bytes: 1024
+
+health:
+  listener:
+    bind: "127.0.0.1"
+    port: 9085
+  forwarder:
+    bind: "127.0.0.1"
+    port: 9086

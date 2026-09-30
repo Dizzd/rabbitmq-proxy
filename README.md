@@ -90,19 +90,19 @@ The workflow in `.github/workflows/release.yml` runs only when a semantic versio
 ```bash
 # Update the package version before tagging when necessary.
 git add Cargo.toml Cargo.lock
-git commit -m "chore: release v1.0.0"
-git tag v1.0.0
+git commit -m "chore: release v1.0.1"
+git tag v1.0.1
 git push origin main
-git push origin v1.0.0
+git push origin v1.0.1
 ```
 
 GitHub Actions runs formatting, Clippy, tests, and static musl builds. It creates a GitHub Release containing:
 
 ```text
-rabbitmq-proxy-v1.0.0-linux-x86_64-musl
-rabbitmq-proxy-v1.0.0-linux-x86_64-musl.tar.gz
-rabbitmq-proxy-v1.0.0-linux-i686-musl
-rabbitmq-proxy-v1.0.0-linux-i686-musl.tar.gz
+rabbitmq-proxy-v1.0.1-linux-x86_64-musl
+rabbitmq-proxy-v1.0.1-linux-x86_64-musl.tar.gz
+rabbitmq-proxy-v1.0.1-linux-i686-musl
+rabbitmq-proxy-v1.0.1-linux-i686-musl.tar.gz
 SHA256SUMS
 ```
 
@@ -260,7 +260,7 @@ sudo systemctl enable --now rabbitmq-proxy-forwarder.service
 From a downloaded GitHub Release archive, the installer automatically uses the packaged binary, so no binary argument is required:
 
 ```bash
-tar -xzf rabbitmq-proxy-v1.0.0-linux-i686-musl.tar.gz
+tar -xzf rabbitmq-proxy-v1.0.1-linux-i686-musl.tar.gz
 cd rabbitmq-proxy
 sudo ./scripts/install.sh
 ```

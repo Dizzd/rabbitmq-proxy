@@ -74,7 +74,7 @@ Set the required release version and select the architecture reported by `uname 
 
 ```bash
 REPOSITORY="Dizzd/rabbitmq-proxy"
-VERSION="v1.0.0"
+VERSION="v1.0.1"
 ARCH="i686"
 ASSET="rabbitmq-proxy-${VERSION}-linux-${ARCH}-musl"
 BASE_URL="https://github.com/${REPOSITORY}/releases/download/${VERSION}"
@@ -92,7 +92,7 @@ grep -F "  ${ASSET}.tar.gz" SHA256SUMS | sha256sum -c -
 Expected output:
 
 ```text
-rabbitmq-proxy-v1.0.0-linux-i686-musl.tar.gz: OK
+rabbitmq-proxy-v1.0.1-linux-i686-musl.tar.gz: OK
 ```
 
 Do not install the archive if checksum verification fails.

@@ -314,3 +314,9 @@ printf '\0024189392543\r\n\003' | curl --data-binary @- http://127.0.0.1:8085/
 The recommended release artifacts are `x86_64-unknown-linux-musl` for 64-bit x86 systems and `i686-unknown-linux-musl` for legacy 32-bit x86 systems, built with rustls and no system OpenSSL dependency. This avoids building on a new Ubuntu glibc and accidentally requiring a glibc version unavailable on Ubuntu 18.04. The two systemd services use features available on supported Ubuntu systemd releases.
 
 The support promise should be verified in CI or release testing with Ubuntu 18.04, 20.04, 22.04, 24.04, and the final 26.04 release image. At the time of writing, 26.04 compatibility is a build/runtime target and must be confirmed against its released userspace.
+
+## Contributors
+
+- [Dizzd](https://github.com/Dizzd) - project owner and maintainer.
+
+See [CONTRIBUTORS.md](CONTRIBUTORS.md) for contributor acknowledgements.

@@ -1,4 +1,5 @@
 use std::{
+    ffi::OsStr,
     net::{IpAddr, SocketAddr},
     path::{Path, PathBuf},
     sync::Arc,
@@ -6,7 +7,7 @@ use std::{
 };
 
 use arc_swap::ArcSwap;
-use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -337,12 +338,16 @@ pub async fn watch_config(
             event = rx.recv() => {
                 let Some(event) = event else { break; };
                 match event {
-                    Ok(event) if event.paths.iter().any(|changed| changed.file_name() == watched_name.as_deref()) => {
+                    Ok(event) if should_reload_config(&event, watched_name.as_deref()) => {
                         tokio::time::sleep(Duration::from_millis(250)).await;
                         while rx.try_recv().is_ok() {}
                         match AppConfig::load(&path).await {
                             Ok(next) => {
                                 let old = current.load_full();
+                                if old.as_ref() == &next {
+                                    tracing::debug!("configuration_reload_unchanged");
+                                    continue;
+                                }
                                 let restart_fields = old.restart_required_changes(&next);
                                 if !restart_fields.is_empty() {
                                     tracing::warn!(fields = ?restart_fields, "configuration_requires_restart");
@@ -365,6 +370,24 @@ pub async fn watch_config(
     }
     drop(watcher);
     Ok(())
+}
+
+fn should_reload_config(event: &Event, watched_name: Option<&OsStr>) -> bool {
+    if event.need_rescan() {
+        return true;
+    }
+
+    if !matches!(
+        event.kind,
+        EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
+    ) {
+        return false;
+    }
+
+    event
+        .paths
+        .iter()
+        .any(|changed| changed.file_name() == watched_name)
 }
 
 fn validate_port(name: &str, port: u16) -> Result<(), ConfigError> {
@@ -404,6 +427,7 @@ fn validation<T>(message: impl Into<String>) -> Result<T, ConfigError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use notify::event::{AccessKind, AccessMode, DataChange, ModifyKind};
 
     fn valid_yaml() -> String {
         include_str!("../config.example.yml").to_owned()
@@ -470,5 +494,35 @@ mod tests {
     fn zero_max_body_should_fail_validation() {
         let yaml = valid_yaml().replace("max_body_size: 1048576", "max_body_size: 0");
         assert!(parse(&yaml).is_err());
+    }
+
+    #[test]
+    fn config_read_event_should_not_trigger_reload() {
+        let event = Event::new(EventKind::Access(AccessKind::Open(AccessMode::Read)))
+            .add_path(PathBuf::from("/etc/rabbitmq-proxy/config.yml"));
+
+        assert!(!should_reload_config(
+            &event,
+            Some(OsStr::new("config.yml"))
+        ));
+    }
+
+    #[test]
+    fn config_write_event_should_trigger_reload() {
+        let event = Event::new(EventKind::Modify(ModifyKind::Data(DataChange::Content)))
+            .add_path(PathBuf::from("/etc/rabbitmq-proxy/config.yml"));
+
+        assert!(should_reload_config(&event, Some(OsStr::new("config.yml"))));
+    }
+
+    #[test]
+    fn unrelated_file_event_should_not_trigger_reload() {
+        let event = Event::new(EventKind::Modify(ModifyKind::Data(DataChange::Content)))
+            .add_path(PathBuf::from("/etc/rabbitmq-proxy/other.yml"));
+
+        assert!(!should_reload_config(
+            &event,
+            Some(OsStr::new("config.yml"))
+        ));
     }
 }

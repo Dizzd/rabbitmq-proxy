@@ -90,19 +90,19 @@ The workflow in `.github/workflows/release.yml` runs only when a semantic versio
 ```bash
 # Update the package version before tagging when necessary.
 git add Cargo.toml Cargo.lock
-git commit -m "chore: release v1.0.1"
-git tag v1.0.1
+git commit -m "chore: release v1.0.2"
+git tag v1.0.2
 git push origin main
-git push origin v1.0.1
+git push origin v1.0.2
 ```
 
 GitHub Actions runs formatting, Clippy, tests, and static musl builds. It creates a GitHub Release containing:
 
 ```text
-rabbitmq-proxy-v1.0.1-linux-x86_64-musl
-rabbitmq-proxy-v1.0.1-linux-x86_64-musl.tar.gz
-rabbitmq-proxy-v1.0.1-linux-i686-musl
-rabbitmq-proxy-v1.0.1-linux-i686-musl.tar.gz
+rabbitmq-proxy-v1.0.2-linux-x86_64-musl
+rabbitmq-proxy-v1.0.2-linux-x86_64-musl.tar.gz
+rabbitmq-proxy-v1.0.2-linux-i686-musl
+rabbitmq-proxy-v1.0.2-linux-i686-musl.tar.gz
 SHA256SUMS
 ```
 
@@ -210,6 +210,8 @@ The process watches the directory containing `config.yml`, which also supports a
 
 Invalid files are logged and ignored; the previous valid configuration remains active.
 
+Read/open/close filesystem events are ignored, so reading `config.yml` cannot trigger a reload loop. Create, modify, remove, rename, and watcher-rescan events are debounced, and a valid configuration equal to the active snapshot is treated as unchanged without emitting `configuration_reloaded`.
+
 Hot-applied fields include allowed IPs, listener body/request limits, target URL, forwarder request timeout, retry/poison settings, reconnect delays, payload logging, and log level. Bind addresses, ports, listener path, file paths, forwarder connect timeout/concurrency, and RabbitMQ topology/consumer setup produce a `configuration_requires_restart` warning. Some RabbitMQ connection fields may be observed on a later reconnect, but a controlled restart is required for deterministic rollout.
 
 ## Logging
@@ -260,7 +262,7 @@ sudo systemctl enable --now rabbitmq-proxy-forwarder.service
 From a downloaded GitHub Release archive, the installer automatically uses the packaged binary, so no binary argument is required:
 
 ```bash
-tar -xzf rabbitmq-proxy-v1.0.1-linux-i686-musl.tar.gz
+tar -xzf rabbitmq-proxy-v1.0.2-linux-i686-musl.tar.gz
 cd rabbitmq-proxy
 sudo ./scripts/install.sh
 ```

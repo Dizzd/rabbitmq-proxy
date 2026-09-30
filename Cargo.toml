@@ -1,6 +1,6 @@
 [package]
 name = "rabbitmq-proxy"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2024"
 rust-version = "1.88"
 description = "HTTP to RabbitMQ listener and RabbitMQ to HTTP forwarder"

@@ -21,6 +21,8 @@ rabbitmq-proxy/
 ├── README.md
 ├── docs/
 │   └── DEPLOYMENT.md
+├── logrotate/
+│   └── rabbitmq-proxy
 ├── scripts/
 │   ├── install.sh
 │   └── uninstall.sh
@@ -37,6 +39,7 @@ The server needs:
 - Root or `sudo` access for installation.
 - Network access to RabbitMQ and the PMS/EWS target.
 - `curl`, `tar`, `grep`, and `sha256sum` for online installation.
+- `logrotate`, which is normally installed by default on Ubuntu.
 - An existing RabbitMQ topology when `rabbitmq.declare_topology` is `false`.
 
 The musl binaries do not require a compatible host glibc version or a system OpenSSL installation.
@@ -120,11 +123,12 @@ The installer creates the service user and installs:
 /opt/rabbitmq-proxy/rabbitmq-proxy
 /etc/rabbitmq-proxy/config.yml
 /var/log/rabbitmq-proxy/
+/etc/logrotate.d/rabbitmq-proxy
 /etc/systemd/system/rabbitmq-proxy-listener.service
 /etc/systemd/system/rabbitmq-proxy-forwarder.service
 ```
 
-If `/etc/rabbitmq-proxy/config.yml` already exists, the installer preserves it.
+If `/etc/rabbitmq-proxy/config.yml` or `/etc/logrotate.d/rabbitmq-proxy` already exists, the installer preserves it.
 
 ## 5. Configure production
 
@@ -222,6 +226,30 @@ sudo tail -f /var/log/rabbitmq-proxy/listener.log
 sudo tail -f /var/log/rabbitmq-proxy/forwarder.log
 ```
 
+## Log rotation
+
+The installer adds `/etc/logrotate.d/rabbitmq-proxy` unless that file already exists. The default policy:
+
+- Checks the logs daily and rotates files larger than 50 MiB.
+- Keeps 14 rotations.
+- Compresses older rotations.
+- Uses `copytruncate`, so the services do not need to restart or reopen their log file descriptors.
+- Runs rotation as the `rabbitmq-proxy` user and group.
+
+Validate the syntax without rotating logs:
+
+```bash
+sudo logrotate --debug /etc/logrotate.d/rabbitmq-proxy
+```
+
+To force a one-time rotation test:
+
+```bash
+sudo logrotate --force /etc/logrotate.d/rabbitmq-proxy
+```
+
+The packaged policy covers the default `/var/log/rabbitmq-proxy/*.log` path. If `logging.directory`, `listener_file`, or `forwarder_file` is changed, update `/etc/logrotate.d/rabbitmq-proxy` to match. `copytruncate` can lose a very small number of log records written between the copy and truncate operations; application traffic and RabbitMQ delivery are unaffected.
+
 Useful checks:
 
 ```bash
@@ -283,7 +311,7 @@ From any extracted release directory:
 sudo ./scripts/uninstall.sh
 ```
 
-The uninstall script removes the executable and systemd units but preserves `/etc/rabbitmq-proxy/config.yml` and `/var/log/rabbitmq-proxy`.
+The uninstall script removes the executable, systemd units, and logrotate policy but preserves `/etc/rabbitmq-proxy/config.yml` and `/var/log/rabbitmq-proxy`.
 
 ## Production checklist
 

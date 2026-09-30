@@ -84,7 +84,7 @@ jobs:
           grep -Eq "statically linked|not a dynamic executable" /tmp/rabbitmq-proxy-ldd.txt
           "$binary" check-config --config config.example.yml
 
-          mkdir -p "package/rabbitmq-proxy/docs" "package/rabbitmq-proxy/systemd" "package/rabbitmq-proxy/scripts" dist
+          mkdir -p "package/rabbitmq-proxy/docs" "package/rabbitmq-proxy/systemd" "package/rabbitmq-proxy/scripts" "package/rabbitmq-proxy/logrotate" dist
           install -m 0755 "$binary" "dist/$asset"
           install -m 0755 "$binary" "package/rabbitmq-proxy/rabbitmq-proxy"
           install -m 0644 config.example.yml "package/rabbitmq-proxy/config.yml"
@@ -92,6 +92,7 @@ jobs:
           install -m 0644 README.md "package/rabbitmq-proxy/README.md"
           install -m 0644 docs/DEPLOYMENT.md "package/rabbitmq-proxy/docs/DEPLOYMENT.md"
           install -m 0644 systemd/*.service "package/rabbitmq-proxy/systemd/"
+          install -m 0644 logrotate/rabbitmq-proxy "package/rabbitmq-proxy/logrotate/rabbitmq-proxy"
           install -m 0755 scripts/*.sh "package/rabbitmq-proxy/scripts/"
 
           tar -C package -czf "dist/$asset.tar.gz" rabbitmq-proxy

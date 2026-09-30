@@ -106,7 +106,7 @@ rabbitmq-proxy-v1.0.0-linux-i686-musl.tar.gz
 SHA256SUMS
 ```
 
-Each archive contains the executable, a starting `config.yml`, `config.example.yml`, README, the production deployment guide, systemd units, and installation scripts.
+Each archive contains the executable, a starting `config.yml`, `config.example.yml`, README, the production deployment guide, systemd units, a logrotate policy, and installation scripts.
 
 ## CLI
 
@@ -214,7 +214,13 @@ Hot-applied fields include allowed IPs, listener body/request limits, target URL
 
 Logs are newline-delimited JSON via `tracing`. Listener mode writes `logging.listener_file`; forwarder mode writes `logging.forwarder_file`; `all` routes forwarder targets to the forwarder file and other service events to the listener file. Logs are also emitted to stdout for journald.
 
-If the log directory is temporarily unavailable, startup continues with stdout logging and emits `file_logging_unavailable`. Rotation is intentionally delegated to `logrotate` or journald.
+If the log directory is temporarily unavailable, startup continues with stdout logging and emits `file_logging_unavailable`.
+
+The installer adds `/etc/logrotate.d/rabbitmq-proxy`. The default policy rotates `*.log` daily or when a file exceeds 50 MiB, keeps 14 rotations, and compresses old logs. It uses `copytruncate` because the running process keeps its log file descriptor open. If `logging.directory` or either configured filename is changed, update the logrotate path as well. Validate the installed policy with:
+
+```bash
+sudo logrotate --debug /etc/logrotate.d/rabbitmq-proxy
+```
 
 ## Health checks
 
@@ -257,7 +263,7 @@ cd rabbitmq-proxy
 sudo ./scripts/install.sh
 ```
 
-The installer creates the `rabbitmq-proxy` system user, required directories, one executable, two units, and a config only when one does not already exist. It never overwrites a production `config.yml`.
+The installer creates the `rabbitmq-proxy` system user, required directories, one executable, two units, a logrotate policy, and a config only when one does not already exist. It never overwrites an existing production `config.yml` or logrotate policy.
 
 Installed layout:
 
@@ -266,6 +272,7 @@ Installed layout:
 /etc/rabbitmq-proxy/config.yml
 /var/log/rabbitmq-proxy/listener.log
 /var/log/rabbitmq-proxy/forwarder.log
+/etc/logrotate.d/rabbitmq-proxy
 /etc/systemd/system/rabbitmq-proxy-listener.service
 /etc/systemd/system/rabbitmq-proxy-forwarder.service
 ```

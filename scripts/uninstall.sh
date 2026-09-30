@@ -9,8 +9,9 @@ fi
 systemctl disable --now rabbitmq-proxy-listener.service rabbitmq-proxy-forwarder.service 2>/dev/null || true
 rm -f /etc/systemd/system/rabbitmq-proxy-listener.service
 rm -f /etc/systemd/system/rabbitmq-proxy-forwarder.service
+rm -f /etc/logrotate.d/rabbitmq-proxy
 rm -f /opt/rabbitmq-proxy/rabbitmq-proxy
 rmdir /opt/rabbitmq-proxy 2>/dev/null || true
 systemctl daemon-reload
 
-echo "Uninstalled binary and units. Configuration and logs were preserved."
+echo "Uninstalled binary, units, and logrotate policy. Configuration and logs were preserved."

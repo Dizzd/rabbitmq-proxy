@@ -49,6 +49,13 @@ fi
 
 install -m 0644 "$PROJECT_DIR/systemd/rabbitmq-proxy-listener.service" /etc/systemd/system/rabbitmq-proxy-listener.service
 install -m 0644 "$PROJECT_DIR/systemd/rabbitmq-proxy-forwarder.service" /etc/systemd/system/rabbitmq-proxy-forwarder.service
+
+if [ ! -f /etc/logrotate.d/rabbitmq-proxy ]; then
+  install -m 0644 -o root -g root "$PROJECT_DIR/logrotate/rabbitmq-proxy" /etc/logrotate.d/rabbitmq-proxy
+else
+  echo "Preserving existing /etc/logrotate.d/rabbitmq-proxy"
+fi
+
 systemctl daemon-reload
 
 echo "Installed rabbitmq-proxy. Review /etc/rabbitmq-proxy/config.yml before enabling services."
